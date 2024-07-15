@@ -27,7 +27,7 @@ def load_sentence(path):
     print("获取句子数量：", len(sentences))
     return sentences
 
-#将文本向量化
+#将文本向量化 词向量到文本向量的转化
 def sentences_to_vectors(sentences, model):
     vectors = []
     for sentence in sentences:
