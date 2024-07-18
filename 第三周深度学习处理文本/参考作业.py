@@ -14,33 +14,58 @@ import matplotlib.pyplot as plt
 对比rnn和pooling做法
 
 """
+"""
+rnn_out 是RNN层的输出，它的形状是 (batch_size, sequence_length, vector_dim)，其中：
+batch_size 表示批次中样本的数量。
+sequence_length 表示输入序列的长度，即句子中的词数量。
+vector_dim 表示隐藏状态的维度，也是词向量的维度。
+在这行代码中，我们使用 [:, -1, :] 进行索引操作，具体含义如下：
+
+: 表示在第一个维度（batch_size）上选择所有的元素，即保持批次维度不变。
+-1 表示在第二个维度（sequence_length）上选择最后一个时间步的隐藏状态。
+: 表示在第三个维度（vector_dim）上选择所有的元素，即保持隐藏状态的维度不变。
+这样，x 就表示输入序列经过RNN层处理后的最后一个时间步的隐藏状态，它的形状是 (batch_size, vector_dim)。在文本分类任务中，这个隐藏状态可以看作是整个句子的固定长度表示，用于进行后续的分类操作。
+通过选择最后一个时间步的隐藏状态作为句子表示，模型能够捕捉输入序列的整体语义信息，并将其编码为一个固定维度的向量，以便进行分类或其他下游任务。
+
+在循环神经网络（RNN）中，隐藏状态（hidden state）是指在每个时间步产生的中间状态。隐藏状态可以看作是模型对过去观察的记忆或表示。
+在文本分类任务中，RNN被用来处理输入序列，其中每个时间步对应输入序列中的一个词或字符。在每个时间步，RNN模型会接收当前时间步的输入以及前一个时间步的隐藏状态，并产生当前时间步的输出和下一个时间步的隐藏状态。
+在这个过程中，每个时间步的隐藏状态是根据当前时间步的输入、前一个时间步的隐藏状态以及模型的参数计算得到的。隐藏状态可以看作是模型对过去输入的编码或表示，它携带了过去输入序列的信息。
+在文本分类任务中，我们通常只关注最后一个时间步的隐藏状态，因为它包含了整个输入序列的总结和编码信息。这个最后时间步的隐藏状态可以被视为整个句子的固定长度表示，用于进行分类或其他后续任务。
+总结起来，时间步的隐藏状态是RNN模型在每个时间步计算得到的中间状态，它携带了过去输入序列的信息，并用于建模序列中的依赖关系和提取序列的特征。在文本分类任务中，我们常常使用最后一个时间步的隐藏状态作为整个句子的表示。
+"""
 
 class TorchModel(nn.Module):
-    def __init__(self, vector_dim, sentence_length, vocab):
+    def __init__(self, vector_dim, sentence_length, vocab):  # __init__方法是类的构造函数
         super(TorchModel, self).__init__()
         self.embedding = nn.Embedding(len(vocab), vector_dim)  #embedding层
         #可以自行尝试切换使用rnn或pooling
         # self.pool = nn.AvgPool1d(sentence_length)   #池化层
-        self.rnn = nn.RNN(vector_dim, vector_dim, batch_first=True)
+        self.rnn = nn.RNN(vector_dim, vector_dim+ 1, batch_first=True)   # self.rnn是一个nn.RNN层，它接受词向量作为输入，并在序列维度上进行逐步处理。该层的输出是每个时间步的隐藏状态
 
-        # +1的原因是可能出现a不存在的情况，那时的真实label在构造数据时设为了sentence_length
-        self.classify = nn.Linear(vector_dim, sentence_length + 1) # 输出映射到相同的维度
+        # vector_dim + 1是根据RNN的输出层作为linear的输入层     +1的原因是可能出现 a 不存在的情况，那时的真实label在构造数据时设为了sentence_length
+        self.classify = nn.Linear(vector_dim + 1, sentence_length + 1) # 输出映射到相同的维度 # self.classify是一个线性层 (nn.Linear)，它将RNN的输出映射到与句子长度加1相同的维度。这是为了适应可能出现的"a不存在"的情况，其中句子长度被设为了sentence_length
         self.loss = nn.functional.cross_entropy
 
     #当输入真实标签，返回loss值；无真实标签，返回预测值
     def forward(self, x, y=None):
-        x = self.embedding(x)
+        print("x",x.shape)        # （batch_size ,sentenc_length）
+        x = self.embedding(x)      # （batch_size ,sentenc_length） -->（batch_size ,sentenc_length ,vecor_dim）
+        print("x.embedding", x.shape)
         #使用pooling的情况
         # x = x.transpose(1, 2)
         # x = self.pool(x)
         # x = x.squeeze()
         #使用rnn的情况
-        rnn_out, hidden = self.rnn(x)
+        rnn_out, hidden = self.rnn(x) # （batch_size ,sentenc_length ,vecor_dim）-->（batch_size ,sentenc_length ,vecor_dim + 1）
+        print("x.rnn", rnn_out.shape)
         # batch,max_len,vector_dim
-        x = rnn_out[:, -1, :]  #或者写hidden.squeeze()也是可以的，因为rnn的hidden就是最后一个位置的输出
-
+        print("hidden",hidden.shape)
+        print("hidden.squeeze", hidden.squeeze().shape)
+        x = rnn_out[:, -1, :]  #或者写hidden.squeeze()也是可以的，因为rnn的hidden就是最后一个位置的输出 x = rnn_out[:, -1] x = rnn_out[:, sequence_length - 1, :] # （batch_size ,sentenc_length ,vecor_dim + 1）--->（batch_size  ,vecor_dim + 1）
+        print("x.rnn_out",x.shape)
         #接线性层做分类
-        y_pred = self.classify(x)
+        y_pred = self.classify(x)  # （batch_size  ,vecor_dim + 1） --->（batch_size  ,sentence_length + 1）
+        print("y_pred:",y_pred.shape)
         if y is not None:
             return self.loss(y_pred, y)   #预测值和真实值计算损失
         else:
@@ -64,9 +89,9 @@ def build_sample(vocab, sentence_length):
     x = random.sample(list(vocab.keys()), sentence_length)
     #指定哪些字出现时为正样本
     if "a" in x:
-        y = x.index("a")
+        y = x.index("a")  # 0-9
     else:
-        y = sentence_length
+        y = sentence_length # y = 句子长度 也就是10
     x = [vocab.get(word, vocab['unk']) for word in x]   #将字转换成序号，为了做embedding
     return x, y
 
