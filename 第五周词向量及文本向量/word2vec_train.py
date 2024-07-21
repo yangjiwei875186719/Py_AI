@@ -15,7 +15,7 @@ from collections import defaultdict
 #corpus: [["今天", "天气", "不错"], ["你", "好", "吗"]]
 #dim指定词向量的维度，如100
 def train_word2vec_model(corpus, dim):
-    model = Word2Vec(corpus, vector_size=dim, sg=1)
+    model = Word2Vec(corpus, vector_size=dim, sg=1)  # vector_size向量维度  Word2Vec有各种参数  sg方式 底层是skip_gram，中间预测两边  =0 CBOW
     model.save("model.w2v")
     return model
 
@@ -40,9 +40,9 @@ if __name__ == "__main__":
  
     print(model.wv.most_similar(positive=["男人", "母亲"], negative=["女人"])) #类比
 
-    while True:  #找相似
-        string = input("input:")
-        try:
-            print(model.wv.most_similar(string))
-        except KeyError:
-            print("输入词不存在")
+    # while True:  #找相似
+    #     string = input("input:")
+    #     try:
+    #         print(model.wv.most_similar(string))   # 找最接近的
+    #     except KeyError:
+    #         print("输入词不存在")
