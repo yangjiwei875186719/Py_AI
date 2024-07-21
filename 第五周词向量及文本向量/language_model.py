@@ -1,7 +1,7 @@
 #coding:utf8
 
 import torch
-import torch.nn as nn
+import torch    .nn as nn
 import numpy as np
 
 
@@ -26,19 +26,20 @@ class LanguageModel(nn.Module):
         context_embedding = self.word_vectors(context)  #output shape = batch_size, max_length, embedding_size
         #总体计算 y = b+Wx+Utanh(d+Hx)， 其中x为每个词向量的拼接
         #词向量的拼接
-        x = context_embedding.view(context_embedding.shape[0], -1) #shape = batch_size, max_length*embedding_size
+        x = context_embedding.view(context_embedding.shape[0], -1) #shape = batch_size, max_length*embedding_size 一个矩阵拉平一个向量
         #hx + d
         inner_projection = self.inner_projection_layer(x)  #shape = batch_size, hidden_size
-        #tanh(hx+d)
+        #tanh(hx+d) 激活层
         inner_projection = torch.tanh(inner_projection)    #shape = batch_size, hidden_size
         #U * tanh(hx+d) + b
         outter_project = self.outter_projection_layer(inner_projection)  # shape = batch_size, hidden_size
-        #Wx
+        #Wx 公式的左侧
         x_projection = self.x_projection_layer(x)    #shape = batch_size, hidden_size
         #y = Wx + Utanh(hx+d) + b
         y = x_projection + outter_project  #shape = batch_size, hidden_size
+        # 少写一步 y也要走一个线性层，如果不映射的话，projection_layer的vocab_size要和hidd_size一致，一样的数据就行
         #softmax后输出预测概率, 训练的目标是让y_pred对应到字表中某个字
-        y_pred = torch.softmax(y, dim=-1)  #shape = batch_size, hidden_size
+        y_pred = torch.softmax(y, dim=-1)  #shape = batch_size, hidden_size  # dim=-1 自动去推断
         return y_pred
 
 vocab_size = 8  #词表大小
@@ -58,5 +59,5 @@ print("loss可以使用交叉熵计算：", nn.functional.cross_entropy(pred, to
 print("词向量矩阵")
 matrix = model.state_dict()["word_vectors.weight"]
 
-print(matrix.shape)  #vocab_size, embedding_size
+print(matrix.shape)  #形状 vocab_size, embedding_size
 print(matrix)
