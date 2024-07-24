@@ -12,6 +12,7 @@ from nnlm import build_model, build_vocab
 
 """
 使用训练好的语言模型
+话者分离案例
 """
 
 def load_trained_language_model(path):
@@ -48,7 +49,7 @@ def calc_perplexity(sentence, model):
 
 #加载训练好的所有模型
 def load_models():
-    model_paths = os.listdir(os.path.dirname(os.path.abspath(__file__)) + "/model")
+    model_paths = os.listdir(os.path.dirname(os.path.abspath(__file__)) + "/model")  # 读取模型文件
     class_to_model = {}
     for model_path in model_paths:
         class_name = model_path.replace(".pth", "")

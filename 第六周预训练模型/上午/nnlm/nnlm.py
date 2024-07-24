@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 
 """
 基于pytorch的rnn语言模型
+手撕神经语言模型
+多少个类别语料就生成多少个模型文件
 """
 
 class LanguageModel(nn.Module):
@@ -66,8 +68,8 @@ def load_corpus(path):
 def build_sample(vocab, window_size, corpus):
     start = random.randint(0, len(corpus) - 1 - window_size)
     end = start + window_size
-    window = corpus[start:end]
-    target = corpus[end]
+    window = corpus[start:end]  # 网络输入
+    target = corpus[end]        # 分的类别，对应的字
     # print(window, target)
     x = [vocab.get(word, vocab["<UNK>"]) for word in window]   #将字转换成序号
     y = vocab[target]
@@ -100,16 +102,17 @@ def calc_perplexity(sentence, model, vocab, window_size):
     with torch.no_grad():
         for i in range(1, len(sentence)):
             start = max(0, i - window_size)
-            window = sentence[start:i]
+            window = sentence[start:i]  # 字第一个为位置
             x = [vocab.get(char, vocab["<UNK>"]) for char in window]
             x = torch.LongTensor([x])
             target = sentence[i]
             target_index = vocab.get(target, vocab["<UNK>"])
             if torch.cuda.is_available():
                 x = x.cuda()
-            pred_prob_distribute = model(x)[0]
-            target_prob = pred_prob_distribute[target_index]
-            prob += math.log(target_prob, 10)
+            # 关键
+            pred_prob_distribute = model(x)[0]  # 模型输出向量
+            target_prob = pred_prob_distribute[target_index]  # 模型对应下一个值
+            prob += math.log(target_prob, 10)  # 对象相加 loga + logb = logab
     return 2 ** (prob * ( -1 / len(sentence)))
 
 
@@ -122,7 +125,7 @@ def train(corpus_path, save_weight=True):
     vocab = build_vocab("vocab.txt")       #建立字表
     corpus = load_corpus(corpus_path)     #加载语料
     model = build_model(vocab, char_dim)    #建立模型
-    if torch.cuda.is_available():
+    if torch.cuda.is_available():   # : 是一个条件语句，用于检查当前系统是否支持 CUDA，即是否有可用的 GPU。CUDA 是 NVIDIA 提供的用于并行计算的平台和编程模型，通常用于加速深度学习模型的训练和推断过程
         model = model.cuda()
     optim = torch.optim.Adam(model.parameters(), lr=0.001)   #建立优化器
     for epoch in range(epoch_num):
@@ -141,9 +144,11 @@ def train(corpus_path, save_weight=True):
     if not save_weight:
         return
     else:
-        base_name = os.path.basename(corpus_path).replace("txt", "pth")
+        base_name = os.path.basename(corpus_path).replace("txt", "pth") # 返回 corpus_path 的最后一个路径部分，即文件名部分。
+        # 'os.path.join("model", base_name) 将 "model" 和 base_name 拼接在一起，形成一个新的路径。
+        # 所以 model_path 将是一个路径，指向存储模型权重的目标位置。'
         model_path = os.path.join("model", base_name)
-        torch.save(model.state_dict(), model_path)
+        torch.save(model.state_dict(), model_path)  # model.state_dict() 返回模型的状态字典，其中包含模型的所有参数 # torch.save() 用于将对象保存到文件中，这里将模型的状态字典保存到 model_path 指定的文件中
         return
 
 #训练corpus文件夹下的所有语料，根据文件名将训练后的模型放到莫得了文件夹
