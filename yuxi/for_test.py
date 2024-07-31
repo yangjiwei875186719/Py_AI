@@ -120,7 +120,7 @@ def build_vocab(): # vocab词汇
     chars = "你我他好坏上中下asdfghjk" # 字符集
     vocab = {}     # 定义字典类型
     for index, char in enumerate(chars,start=0):  # index 索引，char字符  start是索引从哪个开始
-        vocab[char] = index + 1
+        vocab[char] = index + 1  # char变成了键   index + 1 变成了值
     vocab['unk'] = len(vocab) + 1
     return vocab
 vocab = build_vocab()
@@ -191,3 +191,20 @@ vocab = build_vocab()
 x1,y1 = build_dataset(vocab,3,5)
 print("x1:",x1)
 print("y1:",y1)
+
+
+"""
+
+defaultdict
+range(n) 生成了一个从 0 到 n-1 的数字序列。
+对于范围内的每个数字 x，x + 1 被用作字典中的键。
+每个键对应的值是一个新的 defaultdict 对象，其值被初始化为整数。这意味着如果你访问字典中不存在的键，它会自动创建该键，并将其默认值设为 0。
+"""
+print("----------------- defaultdict-----------------")
+
+from collections import defaultdict
+
+n = 5  # 或者其他任何n的值
+ngram_count_dict = dict((x + 1, defaultdict(int)) for x in range(n))
+
+print(ngram_count_dict)
