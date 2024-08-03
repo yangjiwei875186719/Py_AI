@@ -19,7 +19,7 @@ class TorchModel(nn.Module):
         self.use_bert = False
         self.embedding = nn.Embedding(vocab_size, hidden_size, padding_idx=0)
         if model_type == "fast_text":
-            self.encoder = lambda x: x
+            self.encoder = lambda x: x  # 如果 model_type 的值是 "fast_text"，则将一个匿名函数赋值给 self.encoder。这个匿名函数接受一个参数 x，并简单地返回 x，即不对输入进行任何编码操作。
         elif model_type == "lstm":
             self.encoder = nn.LSTM(hidden_size, hidden_size, num_layers=num_layers, batch_first=True)
         elif model_type == "gru":
@@ -27,7 +27,7 @@ class TorchModel(nn.Module):
         elif model_type == "rnn":
             self.encoder = nn.RNN(hidden_size, hidden_size, num_layers=num_layers, batch_first=True)
         elif model_type == "cnn":
-            self.encoder = CNN(config)
+            self.encoder = CNN(config) #调用CNN类
         elif model_type == "gated_cnn":
             self.encoder = GatedCNN(config)
         elif model_type == "stack_gated_cnn":
@@ -56,11 +56,11 @@ class TorchModel(nn.Module):
         self.loss = nn.functional.cross_entropy  #loss采用交叉熵损失
 
     #当输入真实标签，返回loss值；无真实标签，返回预测值
-    def forward(self, x, target=None):
+    def forward(self, x, target=None):  # target目标
         if self.use_bert:  # bert返回的结果是 (sequence_output, pooler_output)
             #sequence_output:batch_size, max_len, hidden_size
             #pooler_output:batch_size, hidden_size
-            x = self.encoder(x)     # 如果使用的bert就不需要embedding了，因为bert自带embedding
+            x = self.encoder(x)     # 如果使用的bert就不需要embedding了，因为bert自带embedding  encoder编码器
         else:
             x = self.embedding(x)  # input shape:(batch_size, sen_len)
             x = self.encoder(x)  # input shape:(batch_size, sen_len, input_dim)
@@ -69,31 +69,36 @@ class TorchModel(nn.Module):
             x = x[0]
         #可以采用pooling的方式得到句向量
         if self.pooling_style == "max":
-            self.pooling_layer = nn.MaxPool1d(x.shape[1])
+            self.pooling_layer = nn.MaxPool1d(x.shape[1])  # 最大池化
         else:
-            self.pooling_layer = nn.AvgPool1d(x.shape[1])
-        x = self.pooling_layer(x.transpose(1, 2)).squeeze() #input shape:(batch_size, sen_len, input_dim)
+            self.pooling_layer = nn.AvgPool1d(x.shape[1])  # 平均池化
+        x = self.pooling_layer(x.transpose(1, 2)).squeeze() #input shape: input:(batch_size, sen_len, input_dim) --> transpose:(batch_size, input_dim, sen_len)  --> pooling_layer:(batch_size, input_dim, 1) --> squeeze:(batch_size, input_dim)
 
         #也可以直接使用序列最后一个位置的向量
         # x = x[:, -1, :]
         predict = self.classify(x)   #input shape:(batch_size, input_dim)
         if target is not None:
-            return self.loss(predict, target.squeeze())
+            return self.loss(predict, target.squeeze())  # target.squeeze() 的作用是去除 target 张量中维度为1的维度，将其转换为更简化的形状。
         else:
             return predict
 
-
+"""
+这个模型类实现了一个简单的一维卷积神经网络，通过对输入数据进行一维卷积操作，可以用于处理序列数据，如文本分类、序列建模等任务。
+"""
 class CNN(nn.Module):
     def __init__(self, config):
         super(CNN, self).__init__()
-        hidden_size = config["hidden_size"]
-        kernel_size = config["kernel_size"]
-        pad = int((kernel_size - 1)/2)
-        self.cnn = nn.Conv1d(hidden_size, hidden_size, kernel_size, bias=False, padding=pad)
+        hidden_size = config["hidden_size"]  # 从配置中获取隐藏层大小 hidden_size。
+        kernel_size = config["kernel_size"]  # 从配置中获取卷积核大小 kernel_size。
+        pad = int((kernel_size - 1)/2)  # 计算填充大小，使得卷积操作的输出大小与输入大小相同
+        self.cnn = nn.Conv1d(hidden_size, hidden_size, kernel_size, bias=False, padding=pad)  # 定义一个一维卷积层 nn.Conv1d，包括输入通道数、输出通道数、卷积核大小、是否包含偏置项和填充大小
 
     def forward(self, x): #x : (batch_size, max_len, embeding_size)
-        return self.cnn(x.transpose(1, 2)).transpose(1, 2)
+        return self.cnn(x.transpose(1, 2)).transpose(1, 2)  #对输入进行一维卷积操作，首先通过 transpose(1, 2) 调整维度，然后将卷积结果再次通过 transpose(1, 2) 调整维度，最终返回卷积层的输出。
 
+""" 
+做两个卷积   一个标注卷积和一个过激活函数的卷积
+"""
 class GatedCNN(nn.Module):
     def __init__(self, config):
         super(GatedCNN, self).__init__()
@@ -104,7 +109,7 @@ class GatedCNN(nn.Module):
         a = self.cnn(x)
         b = self.gate(x)
         b = torch.sigmoid(b)
-        return torch.mul(a, b)
+        return torch.mul(a, b)  # 将 a 和 b 逐元素相乘，实现门控机制的效果，得到模型的最终输出。
 
 
 class StackGatedCNN(nn.Module):
@@ -155,6 +160,9 @@ class RCNN(nn.Module):
         x = self.cnn(x)
         return x
 
+"""
+bert完之后，过LSTM
+"""
 class BertLSTM(nn.Module):
     def __init__(self, config):
         super(BertLSTM, self).__init__()
@@ -166,6 +174,9 @@ class BertLSTM(nn.Module):
         x, _ = self.rnn(x)
         return x
 
+"""
+bert完之后，过CNN
+"""
 class BertCNN(nn.Module):
     def __init__(self, config):
         super(BertCNN, self).__init__()
@@ -178,15 +189,15 @@ class BertCNN(nn.Module):
         x = self.cnn(x)
         return x
 
-class BertMidLayer(nn.Module):
+class BertMidLayer(nn.Module):  # 定义了一个名为 BertMidLayer 的神经网络模型类，继承自 nn.Module。
     def __init__(self, config):
         super(BertMidLayer, self).__init__()
-        self.bert = BertModel.from_pretrained(config["pretrain_model_path"], return_dict=False)
-        self.bert.config.output_hidden_states = True
+        self.bert = BertModel.from_pretrained(config["pretrain_model_path"], return_dict=False)  # 通过指定预训练模型路径，创建一个 BERT 模型实例 self.bert。
+        self.bert.config.output_hidden_states = True # 设置 BERT 模型的配置，使其输出所有隐藏状态。
 
     def forward(self, x):
-        layer_states = self.bert(x)[2]#(13, batch, len, hidden)
-        layer_states = torch.add(layer_states[-2], layer_states[-1])
+        layer_states = self.bert(x)[2]#(13, batch, len, hidden)  # 将输入数据 x 输入到 BERT 模型中，获取所有隐藏状态，存储在 layer_states 中，维度为 (13, batch, len, hidden)，其中 13 表示 BERT 模型的层数。
+        layer_states = torch.add(layer_states[-2], layer_states[-1])  # 将倒数第二层和最后一层的隐藏状态相加，得到最终的中间层表示。
         return layer_states
 
 
@@ -209,7 +220,7 @@ if __name__ == "__main__":
     model = BertModel.from_pretrained(Config["pretrain_model_path"], return_dict=False)
     x = torch.LongTensor([[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]])
     sequence_output, pooler_output = model(x)
-    print(x[2], type(x[2]), len(x[2]))
+    print("x[1]:",x[1],"type(x[1]):", type(x[1]), "len(x[1]):",len(x[1]))
 
 
     # model = TorchModel(Config)
