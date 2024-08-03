@@ -10,16 +10,22 @@ from transformers import BertModel
 
 '''
 
-bert = BertModel.from_pretrained(r"F:\Desktop\work_space\pretrain_models\bert-base-chinese", return_dict=False)
-state_dict = bert.state_dict()
+bert = BertModel.from_pretrained(r"E:\桌面快捷\学习\问题台账\20240520AI大模型\八斗精品班\第六周 预训练模型\bert-base-chinese", return_dict=False) # return_dict 老版本和新版本不一样
+state_dict = bert.state_dict()  # 查看权重字典
 bert.eval()
 x = np.array([2450, 15486, 102, 2110])   #假想成4个字的句子
 torch_x = torch.LongTensor([x])          #pytorch形式输入
-seqence_output, pooler_output = bert(torch_x)
+print("torch_x.shape",torch_x.shape)
+## seqence_output 过了12层的输出
+seqence_output, pooler_output = bert(torch_x)  # seqence_output 每个字对应的向量 4 * 768   pooler_output 1*768向量 pooler_output可做分类任务 seqence_output可做分词的任务 现在演变成都用 seqence_output
+
 print(seqence_output.shape, pooler_output.shape)
 # print(seqence_output, pooler_output)
+#
+# print("bert.state_dict().keys():",bert.state_dict().keys())  #查看所有的权值矩阵名称   例：word_embeddings  position_embeddings  token_type_embeddings  LayerNorm
 
-print(bert.state_dict().keys())  #查看所有的权值矩阵名称
+
+
 
 #softmax归一化
 def softmax(x):
@@ -34,7 +40,7 @@ class DiyBert:
     def __init__(self, state_dict):
         self.num_attention_heads = 12
         self.hidden_size = 768
-        self.num_layers = 1        #注意这里的层数要跟预训练config.json文件中的模型层数一致
+        self.num_layers = 1        # 注意这里的层数要跟预训练config.json文件中的模型层数一致，如果打印一样，config.json文件中的模型层数也要改成1
         self.load_weights(state_dict)
 
     def load_weights(self, state_dict):
@@ -58,7 +64,7 @@ class DiyBert:
             attention_layer_norm_w = state_dict["encoder.layer.%d.attention.output.LayerNorm.weight" % i].numpy()
             attention_layer_norm_b = state_dict["encoder.layer.%d.attention.output.LayerNorm.bias" % i].numpy()
             intermediate_weight = state_dict["encoder.layer.%d.intermediate.dense.weight" % i].numpy()
-            intermediate_bias = state_dict["encoder.layer.%d.intermediate.dense.bias" % i].numpy()
+            intermediate_bias = state_dict["encoder.layer.%d.intermediate.dense.bias" % i].numpy()  # dense 是线性层
             output_weight = state_dict["encoder.layer.%d.output.dense.weight" % i].numpy()
             output_bias = state_dict["encoder.layer.%d.output.dense.bias" % i].numpy()
             ff_layer_norm_w = state_dict["encoder.layer.%d.output.LayerNorm.weight" % i].numpy()
