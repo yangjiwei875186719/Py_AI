@@ -53,9 +53,9 @@ def main(config):
             loss.backward()
             optimizer.step()
         logger.info("epoch average loss: %f" % np.mean(train_loss))
-        evaluator.eval(epoch)
+        evaluator.eval(epoch)  # 预测每一轮的模型下的的测试数据集的准确率
     model_path = os.path.join(config["model_path"], "epoch_%d.pth" % epoch)
-    torch.save(model.state_dict(), model_path)
+    torch.save(model.state_dict(), model_path)  # 保存模型的权重 到model_path文件中
     return
 
 if __name__ == "__main__":

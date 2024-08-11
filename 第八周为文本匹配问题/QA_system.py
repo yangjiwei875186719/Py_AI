@@ -97,8 +97,8 @@ class QASystem:
                 score = max(scores)
                 results.append([target, score])
         elif self.algo == "bm25":
-            words = jieba.lcut(user_query)
-            results = self.bm25_model.get_scores(words)
+            words = jieba.lcut(user_query)   # 分词
+            results = self.bm25_model.get_scores(words)  # 算每一类的得分
         elif self.algo == "word2vec":
             query_vector = self.sentence_to_vec(user_query)
             for target, vectors in self.target_to_vectors.items():

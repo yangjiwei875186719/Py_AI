@@ -31,6 +31,7 @@ class SentenceMatchNetwork(nn.Module):
         #一种多层按顺序执行的写法，具体的层可以换
         #unidirection:batch_size, max_len, hidden_size
         #bidirection:batch_size, max_len, hidden_size * 2
+        #
         self.encoder = nn.Sequential(nn.LSTM(hidden_size, hidden_size, bidirectional=True, batch_first=True),
                                      GetFirst(),
                                      nn.ReLU(),
