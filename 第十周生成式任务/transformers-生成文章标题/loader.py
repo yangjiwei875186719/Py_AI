@@ -56,9 +56,9 @@ class DataGenerator:
     #输入输出转化成序列
     def prepare_data(self, title, content):
         input_seq = self.encode_sentence(content, self.config["input_max_length"], False, False) #输入序列
-        output_seq = self.encode_sentence(title, self.config["output_max_length"], True, False) #输出序列
+        output_seq = self.encode_sentence(title, self.config["output_max_length"], True, False) #输出序列  True开始符
 
-        gold = self.encode_sentence(title, self.config["output_max_length"], False, True) #不进入模型，用于计算loss
+        gold = self.encode_sentence(title, self.config["output_max_length"], False, True) #不进入模型，用于计算loss  类似于<go>
 
         self.data.append([torch.LongTensor(input_seq),
                           torch.LongTensor(output_seq),

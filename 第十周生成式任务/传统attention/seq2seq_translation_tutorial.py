@@ -385,13 +385,13 @@ class AttnDecoderRNN(nn.Module):
         self.gru = nn.GRU(self.hidden_size, self.hidden_size)
         self.out = nn.Linear(self.hidden_size, self.output_size)
 
-    def forward(self, input, hidden, encoder_outputs):
-        embedded = self.embedding(input).view(1, 1, -1)
+    def forward(self, input, hidden, encoder_outputs):  # decoder的hidden（Enocder-Decoder结构的蓝色部分） ，input（（Enocder-Decoder结构的蓝色，上面的线到下面的曲线）） 。 encoder的encoder_outputs（整个encoder的输出）
+        embedded = self.embedding(input).view(1, 1, -1)  # input一个字符，
         embedded = self.dropout(embedded)
-
-        attn_weights = F.softmax(
+        # 1* max_length ,输出多个字，就给每个字一个权重，规划成字的高权重 低权重，知道文本中重点在哪
+        attn_weights = F.softmax(  # 复合函数，从内到外看 ，cat拼接 两个1*256拼接成1*512的向量
             self.attn(torch.cat((embedded[0], hidden[0]), 1)), dim=1)
-
+        # bmm 批量矩阵乘法 放到encoder的权重上面
         attn_applied = torch.bmm(attn_weights.unsqueeze(0), 
                                  encoder_outputs.unsqueeze(0))
 
@@ -471,27 +471,27 @@ teacher_forcing_ratio = 0.5
 
 
 def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion, max_length=MAX_LENGTH):
-    encoder_hidden = encoder.initHidden()
-
+    encoder_hidden = encoder.initHidden()  # 初始化全0的这个形状
+    # 两个优化器，梯度归 0
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
-
+    # 获取长度
     input_length = input_tensor.size(0)
     target_length = target_tensor.size(0)
-
+    # 全0 的形状
     encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
 
     loss = 0
-
+    # 走训练，用到encoder,做编码的过程
     for ei in range(input_length):
         encoder_output, encoder_hidden = encoder(
             input_tensor[ei], encoder_hidden)
         encoder_outputs[ei] = encoder_output[0, 0]
-
+    # <g0> [SOS_token]开始符
     decoder_input = torch.tensor([[SOS_token]], device=device)
-
+    # 编码后的。encoder到decoder的中间部分
     decoder_hidden = encoder_hidden
-
+    # teacher firc
     use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
 
     if use_teacher_forcing:
@@ -505,6 +505,7 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
     else:
         # Without teacher forcing: use its own predictions as the next input
         for di in range(target_length):
+            # decoder 的训练，edcoder的输入和输出做loss
             decoder_output, decoder_hidden, decoder_attention = decoder(
                 decoder_input, decoder_hidden, encoder_outputs)
             topv, topi = decoder_output.topk(1)
@@ -558,18 +559,19 @@ def trainIters(encoder, decoder, n_iters, print_every=100, plot_every=100, learn
     plot_losses = []
     print_loss_total = 0  # Reset every print_every
     plot_loss_total = 0  # Reset every plot_every
-
+    # 优化器
     encoder_optimizer = optim.SGD(encoder.parameters(), lr=learning_rate)
     decoder_optimizer = optim.SGD(decoder.parameters(), lr=learning_rate)
+    # 获取训练数据
     training_pairs = [tensorsFromPair(random.choice(pairs))
                       for i in range(n_iters)]
     criterion = nn.NLLLoss()
 
-    for iter in range(1, n_iters + 1):
+    for iter in range(1, n_iters + 1):  # 轮
         training_pair = training_pairs[iter - 1]
         input_tensor = training_pair[0]
         target_tensor = training_pair[1]
-
+        # train训练的部分
         loss = train(input_tensor, target_tensor, encoder,
                      decoder, encoder_optimizer, decoder_optimizer, criterion)
         print_loss_total += loss
@@ -586,7 +588,7 @@ def trainIters(encoder, decoder, n_iters, print_every=100, plot_every=100, learn
             plot_losses.append(plot_loss_avg)
             plot_loss_total = 0
 
-    showPlot(plot_losses)
+    # showPlot(plot_losses)
 
 
 # Plotting results
@@ -680,6 +682,6 @@ hidden_size = 256
 encoder1 = EncoderRNN(input_lang.n_words, hidden_size).to(device)
 attn_decoder1 = AttnDecoderRNN(hidden_size, output_lang.n_words, dropout_p=0.1).to(device)
 
-trainIters(encoder1, attn_decoder1, 1000, print_every=100)
+trainIters(encoder1, attn_decoder1, 1000, print_every=100)  # 训练模型
 
-evaluateRandomly(encoder1, attn_decoder1)
+evaluateRandomly(encoder1, attn_decoder1)  # 预测评估

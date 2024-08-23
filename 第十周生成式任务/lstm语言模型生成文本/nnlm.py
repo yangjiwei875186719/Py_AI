@@ -81,20 +81,20 @@ def build_model(vocab, char_dim):
     return model
 
 #文本生成测试代码
-def generate_sentence(openings, model, vocab, window_size):
-    reverse_vocab = dict((y, x) for x, y in vocab.items())
+def generate_sentence(openings, model, vocab, window_size):  # openings 引言，
+    reverse_vocab = dict((y, x) for x, y in vocab.items())  # 反向字典，字对应序号，改成序号得到字
     model.eval()
     with torch.no_grad():
         pred_char = ""
         #生成了换行符，或生成文本超过30字则终止迭代
-        while pred_char != "\n" and len(openings) <= 30:
+        while pred_char != "\n" and len(openings) <= 30:  # 字超过30个字，或者换行符，这个句子就结束了
             openings += pred_char
             x = [vocab.get(char, vocab["<UNK>"]) for char in openings[-window_size:]]
             x = torch.LongTensor([x])
             if torch.cuda.is_available():
                 x = x.cuda()
-            y = model(x)[0][-1]
-            index = sampling_strategy(y)
+            y = model(x)[0][-1]  # 0 第一个样本  再拼接一个[-1] 是取最后一个字的向量,因为是RNN和LSTM，最后一个字符对应的向量包含了所有字的信息
+            index = sampling_strategy(y)  # 采样测列
             pred_char = reverse_vocab[index]
     return openings
 
@@ -103,9 +103,9 @@ def sampling_strategy(prob_distribution):
         strategy = "greedy"
     else:
         strategy = "sampling"
-    if strategy == "greedy":
+    if strategy == "greedy":   # 贪婪  90%，选最高的
         return int(torch.argmax(prob_distribution))
-    elif strategy == "sampling":
+    elif strategy == "sampling":   # 10%  概率分布采样
         prob_distribution = prob_distribution.cpu().numpy()
         return np.random.choice(list(range(len(prob_distribution))), p=prob_distribution)
 

@@ -16,7 +16,7 @@ class ScaledDotProductAttention(nn.Module):
 
         attn = torch.matmul(q / self.temperature, k.transpose(2, 3))
 
-        if mask is not None:
+        if mask is not None:  # 施加mask,如果mask为0，就赋值为-10的九次方
             attn = attn.masked_fill(mask == 0, -1e9)
 
         attn = self.dropout(F.softmax(attn, dim=-1))
