@@ -10,6 +10,7 @@ import numpy as np
 from torch.utils.data import Dataset, DataLoader
 from collections import defaultdict
 from transformers import BertTokenizer
+
 """
 数据加载
 """
@@ -30,7 +31,7 @@ class DataGenerator:
             segments = f.read().split("\n\n")
             for segment in segments:
                 sentenece = []
-                labels = [8] #cls_token
+                labels = [8]  # cls_token 需要加前缀
                 for line in segment.split("\n"):
                     if line.strip() == "":
                         continue
@@ -46,36 +47,36 @@ class DataGenerator:
                 self.data.append([torch.LongTensor(input_ids), torch.LongTensor(labels)])
         return
 
+    # 分词器
     def encode_sentence(self, text, padding=True):
-        return self.tokenizer.encode(text, 
+        return self.tokenizer.encode(text,
                                      padding="max_length",
                                      max_length=self.config["max_length"],
                                      truncation=True)
 
     def decode(self, sentence, labels):
-        sentence = "$" + sentence
-        labels = "".join([str(x) for x in labels[:len(sentence)+2]])
+        sentence = "$" + sentence  # 加前缀，因为bert会自动加前缀
+        labels = "".join([str(x) for x in labels[:len(sentence) + 2]])
         results = defaultdict(list)
         for location in re.finditer("(04+)", labels):
             s, e = location.span()
-            print("location", s,e)
+            print("location", s, e)
             results["LOCATION"].append(sentence[s:e])
         for location in re.finditer("(15+)", labels):
             s, e = location.span()
-            print("org", s,e)
+            print("org", s, e)
             results["ORGANIZATION"].append(sentence[s:e])
         for location in re.finditer("(26+)", labels):
             s, e = location.span()
-            print("per", s,e)
+            print("per", s, e)
             results["PERSON"].append(sentence[s:e])
         for location in re.finditer("(37+)", labels):
             s, e = location.span()
-            print("time", s,e)
+            print("time", s, e)
             results["TIME"].append(sentence[s:e])
         return results
-    
 
-    #补齐或截断输入的序列，使其可以在一个batch内运算
+    # 补齐或截断输入的序列，使其可以在一个batch内运算
     def padding(self, input_id, pad_token=0):
         input_id = input_id[:self.config["max_length"]]
         input_id += [pad_token] * (self.config["max_length"] - len(input_id))
@@ -91,23 +92,25 @@ class DataGenerator:
         with open(path, encoding="utf8") as f:
             return json.load(f)
 
+
+# 加载bert词表
 def load_vocab(vocab_path):
     return BertTokenizer.from_pretrained(vocab_path)
 
 
-#用torch自带的DataLoader类封装数据
+# 用torch自带的DataLoader类封装数据
 def load_data(data_path, config, shuffle=True):
     dg = DataGenerator(data_path, config)
     dl = DataLoader(dg, batch_size=config["batch_size"], shuffle=shuffle)
     return dl
 
 
-
 if __name__ == "__main__":
     from config import Config
+
     dg = DataGenerator("ner_data/train", Config)
-    dl = DataLoader(dg, batch_size=32)  
-    for x,y in dl:
+    dl = DataLoader(dg, batch_size=32)
+    for x, y in dl:
         print(x.shape, y.shape)
         print(x[1], y[1])
         input()

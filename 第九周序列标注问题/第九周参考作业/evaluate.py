@@ -89,7 +89,7 @@ class Evaluator:
     }
     '''
     def decode(self, sentence, labels):
-        sentence = "$" + sentence
+        sentence = "$" + sentence  # 输出的label，第一位加的是cls，需要加个占位符
         labels = "".join([str(x) for x in labels[:len(sentence)+1]])
         results = defaultdict(list)
         for location in re.finditer("(04+)", labels):

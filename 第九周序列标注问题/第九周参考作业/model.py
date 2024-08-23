@@ -26,8 +26,8 @@ class TorchModel(nn.Module):
     def forward(self, x, target=None):
         # x = self.embedding(x)  #input shape:(batch_size, sen_len)
         # x, _ = self.layer(x)      #input shape:(batch_size, sen_len, input_dim)
-
-        x, _ = self.bert(x)
+        # bert加了embedding
+        x, _ = self.bert(x)  # x是每个字的向量 _句子的向量 和lstm是等价的  ，bert也是embedding一个方法
         predict = self.classify(x) #ouput:(batch_size, sen_len, num_tags) -> (batch_size * sen_len, num_tags)
 
         if target is not None:
