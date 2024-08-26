@@ -1,3 +1,4 @@
+
 #coding:utf8
 
 import torch
@@ -9,7 +10,7 @@ import os
 import re
 from transformers import BertModel,BertTokenizer
 """
-基于pytorch的bert实现自回归语言模型，自己写的，修改了部分数据
+基于pytorch的bert实现自回归语言模型，参考作业 修改的
 """
 
 
@@ -18,24 +19,24 @@ class LanguageModel(nn.Module):
         super(LanguageModel, self).__init__()
         self.bert = BertModel.from_pretrained(config["bert_path"], return_dict=False)
         hidden_size = self.bert.config.hidden_size
-        self.dropout = nn.Dropout(0.1)
-        self.softmax = nn.Softmax(dim=-1)
+        # self.dropout = nn.Dropout(0.1)
+        # self.softmax = nn.Softmax(dim=-1)
         self.classify = nn.Linear(hidden_size, vocab_size)
         self.loss = nn.functional.cross_entropy
 
     #当输入真实标签，返回loss值；无真实标签，返回预测值
     def forward(self, x, y=None):
         if y is not None:
-            # 构建一个下三角的mask，mask施加在q*k上面
-            mask = torch.tril(torch.ones(x.shape[0], x.shape[1], x.shape[1]))
+            # 构建一个下三角的mask，mask施加在q*k上面  文本长度*文本长度 L*L
+            mask = torch.tril(torch.ones((x.shape[0], x.shape[1], x.shape[1])))
             # print(mask.shape)
             x, _ = self.bert(x, attention_mask=mask)
-            x = self.dropout(x)
+            # x = self.dropout(x)
             y_pred = self.classify(x)
 
             return self.loss(y_pred.view(-1, y_pred.shape[-1]), y.view(-1))
         else:
-            x,_ = self.bert(x)
+            x, _ = self.bert(x)  # [0]  因为不是用lstm 所以不用加【0】
             y_pred = self.classify(x)
             return torch.softmax(y_pred, dim=-1)
 
@@ -103,13 +104,15 @@ def generate_sentence(openings, model, tokenizer, window_size):
         #生成了换行符，或生成文本超过30字则终止迭代
         while pred_char != "\n" and len(openings) <= 30: # 字超过30个字，或者换行符，这个句子就结束了
             openings += pred_char
+            # 这段代码有问题，不知道为什么这麽修改，因为这是前一句话，所以不用对输入截断和填充，只需要去掉前缀就行
+            #             x = tokenizer.encode(openings, add_special_tokens=False, padding='max_length', truncation=True,max_length=10)
             x = tokenizer.encode(openings, add_special_tokens=False)
             x = torch.LongTensor([x])
             if torch.cuda.is_available():
                 x = x.cuda()
             y = model(x)[0][-1]  # 0 第一个样本  再拼接一个[-1] 是取最后一个字的向量,因为是RNN和LSTM，最后一个字符对应的向量包含了所有字的信息
             index = sampling_strategy(y)  # 采样测列
-            pred_char = ''.join(tokenizer.decode(index))
+            pred_char = ''.join(tokenizer.decode(index))  # pred_char = tokenizer.decode(index)
     return openings
 
 def sampling_strategy(prob_distribution):
@@ -146,8 +149,8 @@ def calc_perplexity(sentence, model, vocab, window_size):
 from config import Config
 def train(corpus_path, save_weight=True):
     epoch_num = 20        #训练轮数
-    batch_size = 64       #每次训练样本个数
-    train_sample = 50000   #每轮训练总共训练的样本总数
+    batch_size = 128       #每次训练样本个数
+    train_sample = 10000   #每轮训练总共训练的样本总数
     window_size = 10       #样本文本长度
     # vocab = build_vocab("vocab.txt")       #建立字表
     tokenizer =  load_vocab(Config["bert_path"])
