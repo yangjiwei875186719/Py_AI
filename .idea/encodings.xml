@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="Encoding">
+    <file url="file://$PROJECT_DIR$/第九周序列标注问题/作业加参考/evaluate.py" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/第九周序列标注问题/作业加参考/loader.py" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/第九周序列标注问题/作业加参考/model.py" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/第九周序列标注问题/作业加参考/readme" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/第九周序列标注问题/第九周参考作业" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/第十周生成式任务/第十周参考作业" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/第十周生成式任务/第十周参考作业/corpus.txt" charset="GBK" />
     <file url="PROJECT" charset="GBK" />
   </component>
 </project>
