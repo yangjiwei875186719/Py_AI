@@ -2,5 +2,7 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/大模型结构/模型结构相关内容/MOSS" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/大模型结构/模型结构相关内容/Qwen-7B" vcs="Git" />
   </component>
 </project>
