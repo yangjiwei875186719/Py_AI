@@ -206,5 +206,27 @@ from collections import defaultdict
 
 n = 5  # 或者其他任何n的值
 ngram_count_dict = dict((x + 1, defaultdict(int)) for x in range(n))
+print(f"ngram_count_dict:{ngram_count_dict}")
 
-print(ngram_count_dict)
+import json
+# 读取json并转换字典键值对数据
+def load_schema(schema_path):
+    with open(schema_path, encoding="utf8") as f:
+        return json.loads(f.read())
+schema_json = load_schema("schema.json")
+print(f"json数据：{schema_json}")
+# 字典推导式，交换键值对。
+swapped1 = {v:k for k,v in schema_json.items() }
+print(f"swapped1:{swapped1}")
+swapped2 = dict((v,k) for k,v in schema_json.items())
+print(f"swapped2:{swapped2}")
+
+# 不好的写法
+numbers1 = [x * 2 for x in range(10)]
+print(f"number1_type:{numbers1} number1：{numbers1}")
+
+# 好的写法
+numbers2 = (x * 2 for x in range(10))
+for i in numbers2:
+    print(f"{numbers2}")
+print(f"number2：{numbers2}")
